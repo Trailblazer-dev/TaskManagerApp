@@ -1,0 +1,121 @@
+package com.example.taskmanagerapp.ui.screens
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.example.taskmanagerapp.Task
+import com.example.taskmanagerapp.TaskDatabaseHelper
+import com.example.taskmanagerapp.util.SettingsManager
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TaskListScreen(
+    onAddTask: () -> Unit,
+    onEditTask: (Int) -> Unit,
+    settingsManager: SettingsManager
+) {
+    val context = LocalContext.current
+    val db = remember { TaskDatabaseHelper(context) }
+    val tasks = remember { mutableStateOf(db.getAllTasks()) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Task Manager") },
+                actions = {
+                    Switch(
+                        checked = settingsManager.isDarkTheme.value,
+                        onCheckedChange = { settingsManager.toggleTheme() }
+                    )
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddTask) {
+                Icon(Icons.Filled.Add, contentDescription = "Add Task")
+            }
+        }
+    ) { padding ->
+        if (tasks.value.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No tasks yet. Add one!")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                items(tasks.value, key = { it.id }) { task ->
+                    TaskItem(
+                        task = task,
+                        onEdit = { onEditTask(task.id) },
+                        onDelete = {
+                            db.deleteTask(task.id)
+                            tasks.value = db.getAllTasks()
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskItem(task: Task, onEdit: () -> Unit, onDelete: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(text = task.title)
+                Text(text = task.description)
+            }
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Filled.Edit, contentDescription = "Edit")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Filled.Delete, contentDescription = "Delete")
+            }
+        }
+    }
+}

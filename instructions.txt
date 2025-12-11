@@ -1,0 +1,190 @@
+Capstone Project – Task Manager App
+Objectives
+By the end of this project, students will be able to:
+1. Combine multiple Android concepts (UI, fragments, storage, navigation, and
+preferences) into one app.
+2. Build a Task Manager App that allows users to add, view, edit, and delete tasks.
+3. Implement SQLite database for data persistence.
+4. Use SharedPreferences for app settings.
+5. Apply fragments and navigation for better user experience.
+What the App Will Do
+The Task Manager App will allow users to:
+•
+•
+•
+•
+•
+•
+Add a new task (title + description).
+Save tasks permanently in SQLite.
+View all tasks in a list.
+Edit or delete tasks.
+Navigate between different screens using fragments.
+Store simple settings (e.g., dark mode toggle) using SharedPreferences.
+Step-by-Step Instructions
+Step 1: Create the Project
+1. Open Android Studio → New Project → Select Empty Activity → Name it
+TaskManagerApp.
+2. Language: Kotlin.
+3. Minimum SDK: API 24 (Android 7.0) or higher.
+4. Finish and wait for Gradle sync.
+Step 2: Set Up the Main Structure
+•
+The app will have two fragments:
+1. TaskListFragment – shows list of tasks.
+2. AddTaskFragment – form to add/edit tasks.Steps:
+1. Create a package ui.
+2. Inside ui, create two fragments:
+o TaskListFragment.kt
+o AddTaskFragment.kt.
+3. Replace MainActivity.kt with a FragmentContainerView that hosts the fragments.
+class MainActivity : AppCompatActivity() {
+override fun onCreate(savedInstanceState: Bundle?) {
+super.onCreate(savedInstanceState)
+setContentView(R.layout.activity_main)
+}
+}
+if (savedInstanceState == null) {
+supportFragmentManager.beginTransaction()
+.replace(R.id.fragment_container, TaskListFragment())
+.commit()
+}
+Step 3: Create the Task Data Model
+Create a simple Task.kt data class:
+data class Task(
+var id: Int = 0,
+var title: String,
+var description: String
+)
+Step 4: Set Up SQLite Database
+1. Create TaskDatabaseHelper.kt.
+2. Extend SQLiteOpenHelper.
+class TaskDatabaseHelper(context: Context) :
+SQLiteOpenHelper(context, "tasks.db", null, 1) {
+override fun onCreate(db: SQLiteDatabase?) {
+db?.execSQL("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT,
+description TEXT)"
+)
+}
+override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+db?.execSQL("DROP TABLE IF EXISTS tasks")
+onCreate(db)
+}
+fun insertTask(task: Task) {
+val db = writableDatabase
+val values = ContentValues().apply {
+put("title", task.title)
+put("description", task.description)
+}
+db.insert("tasks", null, values)
+db.close()
+}
+fun getAllTasks(): List<Task> {
+val taskList = mutableListOf<Task>()
+val db = readableDatabase
+val cursor = db.rawQuery("SELECT * FROM tasks", null)
+if (cursor.moveToFirst()) {
+do {
+taskList.add(
+Task(
+id = cursor.getInt(0),
+title = cursor.getString(1),
+description = cursor.getString(2)
+)
+)
+} while (cursor.moveToNext())
+}
+cursor.close()
+db.close()
+return taskList
+}
+fun deleteTask(id: Int) {
+val db = writableDatabase
+db.delete("tasks", "id=?", arrayOf(id.toString()))
+db.close()}
+}
+Step 5: Build the Task List Fragment
+•
+•
+Use a ListView (simple enough for undergraduates; RecyclerView could be taught
+later).
+Display tasks from database.
+class TaskListFragment : Fragment() {
+private lateinit var db: TaskDatabaseHelper
+private lateinit var listView: ListView
+private lateinit var adapter: ArrayAdapter<String>
+override fun onCreateView(
+inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+): View? {
+val view = inflater.inflate(R.layout.fragment_task_list, container, false)
+db = TaskDatabaseHelper(requireContext())
+listView = view.findViewById(R.id.task_list)
+loadTasks()
+val fab: FloatingActionButton = view.findViewById(R.id.fab_add)
+fab.setOnClickListener {
+parentFragmentManager.beginTransaction()
+.replace(R.id.fragment_container, AddTaskFragment())
+.addToBackStack(null)
+.commit()
+}
+}
+return view
+private fun loadTasks() {
+val tasks = db.getAllTasks()
+val taskTitles = tasks.map { it.title }
+adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1,
+taskTitles)
+listView.adapter = adapter
+}
+}Step 6: Build the Add Task Fragment
+•
+•
+Contains text fields for title & description.
+Saves to database.
+class AddTaskFragment : Fragment() {
+private lateinit var db: TaskDatabaseHelper
+override fun onCreateView(
+inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+): View? {
+val view = inflater.inflate(R.layout.fragment_add_task, container, false)
+db = TaskDatabaseHelper(requireContext())
+val titleInput: EditText = view.findViewById(R.id.task_title)
+val descInput: EditText = view.findViewById(R.id.task_desc)
+val saveBtn: Button = view.findViewById(R.id.btn_save)
+saveBtn.setOnClickListener {
+val title = titleInput.text.toString()
+val desc = descInput.text.toString()
+if (title.isNotEmpty()) {
+db.insertTask(Task(title = title, description = desc))
+Toast.makeText(requireContext(), "Task Saved", Toast.LENGTH_SHORT).show()
+parentFragmentManager.popBackStack()
+} else {
+Toast.makeText(requireContext(), "Title is required",
+Toast.LENGTH_SHORT).show()
+}
+}
+}
+}
+return view
+Step 7: Add SharedPreferences for Settings
+Example: Dark Mode Toggle.
+•
+In MainActivity or a separate SettingsFragment:
+val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+val editor = prefs.edit()editor.putBoolean("darkMode", true)
+editor.apply()
+Students can later extend this to apply themes.
+Step 8: Testing & Debugging
+•
+•
+•
+Add a few tasks, check if they persist after closing the app.
+Delete a task and confirm it disappears.
+Test navigation between fragments.
+Expected Deliverables
+By the end of this project, each student should have a working Task Manager App with:
+1. Task creation and storage in SQLite.
+2. Task listing in a simple list view.
+3. Ability to delete tasks.
+4. Navigation between fragments.
+5. Simple SharedPreferences setting.
