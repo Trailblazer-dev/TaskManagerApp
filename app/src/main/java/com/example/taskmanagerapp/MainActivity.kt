@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.ui.platform.LocalContext
 import com.example.taskmanagerapp.ui.screens.AddTaskScreen
+import com.example.taskmanagerapp.ui.screens.SettingsScreen
 import com.example.taskmanagerapp.ui.screens.TaskListScreen
 import com.example.taskmanagerapp.ui.theme.TaskManagerAppTheme
 import com.example.taskmanagerapp.util.SettingsManager
@@ -36,7 +37,7 @@ fun AppNavigator(settingsManager: SettingsManager) {
             TaskListScreen(
                 onAddTask = { navController.navigate("addTask") },
                 onEditTask = { taskId -> navController.navigate("editTask/$taskId") },
-                settingsManager = settingsManager
+                onGoToSettings = { navController.navigate("settings") }
             )
         }
         composable("addTask") {
@@ -55,6 +56,12 @@ fun AppNavigator(settingsManager: SettingsManager) {
                 taskId = taskId,
                 onTaskSaved = { navController.popBackStack() },
                 onCancel = { navController.popBackStack() }
+            )
+        }
+        composable("settings") {
+            SettingsScreen(
+                settingsManager = settingsManager,
+                onNavigateUp = { navController.popBackStack() }
             )
         }
     }

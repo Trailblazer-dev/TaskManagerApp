@@ -1,83 +1,99 @@
 package com.example.taskmanagerapp.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskmanagerapp.Task
-import com.example.taskmanagerapp.TaskDatabaseHelper
+import com.example.taskmanagerapp.ui.TaskViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTaskScreen(taskId: Int? = null, onTaskSaved: () -> Unit, onCancel: () -> Unit) {
+fun AddTaskScreen(
+    taskId: Int? = null,
+    onTaskSaved: () -> Unit,
+    onCancel: () -> Unit,
+    taskViewModel: TaskViewModel = viewModel(factory = TaskViewModel.Factory)
+) {
     val context = LocalContext.current
-    val db = remember { TaskDatabaseHelper(context) }
+    val taskToEdit by taskViewModel.selectedTask.collectAsState()
 
-    val title = remember { mutableStateOf("") }
-    val description = remember { mutableStateOf("") }
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
 
-    LaunchedEffect(taskId) {
+    LaunchedEffect(key1 = taskId) {
         if (taskId != null) {
-            val task = db.getTask(taskId)
-            if (task != null) {
-                title.value = task.title
-                description.value = task.description
-            }
+            taskViewModel.loadTask(taskId)
+        } else {
+            taskViewModel.clearSelectedTask()
         }
     }
 
-    Scaffold { padding ->
+    LaunchedEffect(key1 = taskToEdit) {
+        taskToEdit?.let {
+            title = it.title
+            description = it.description
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (taskId == null) "Add Task" else "Edit Task") },
+                navigationIcon = {
+                    IconButton(onClick = onCancel) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
-                value = title.value,
-                onValueChange = { title.value = it },
+                value = title,
+                onValueChange = { title = it },
                 label = { Text("Title") },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
-                value = description.value,
-                onValueChange = { description.value = it },
+                value = description,
+                onValueChange = { description = it },
                 label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(onClick = onCancel, modifier = Modifier.padding(end = 8.dp)) {
+                Button(onClick = onCancel) {
                     Text("Cancel")
                 }
                 Button(onClick = {
-                    if (title.value.isNotEmpty()) {
+                    if (title.isNotEmpty()) {
                         val task = Task(
                             id = taskId ?: 0,
-                            title = title.value,
-                            description = description.value
+                            title = title,
+                            description = description
                         )
                         if (taskId == null) {
-                            db.insertTask(task)
+                            taskViewModel.addTask(task)
                             Toast.makeText(context, "Task Saved", Toast.LENGTH_SHORT).show()
                         } else {
-                            db.updateTask(task)
+                            taskViewModel.updateTask(task)
                             Toast.makeText(context, "Task Updated", Toast.LENGTH_SHORT).show()
                         }
                         onTaskSaved()
@@ -85,7 +101,7 @@ fun AddTaskScreen(taskId: Int? = null, onTaskSaved: () -> Unit, onCancel: () -> 
                         Toast.makeText(context, "Title is required", Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Save")
+                    Text(if (taskId == null) "Save" else "Update")
                 }
             }
         }
