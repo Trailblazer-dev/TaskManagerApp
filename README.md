@@ -6,8 +6,9 @@ A simple task manager application for Android.
 
 *   Add new tasks
 *   View a list of existing tasks
+*   Delete tasks
+*   Modify tasks
 *   (Future) Mark tasks as complete
-*   (Future) Delete tasks
 
 ## Getting Started
 
